@@ -5,10 +5,9 @@ async function sundayReminder(req, res) {
 
   const payload = {
     content:
-      '📢 **光之戰士們！填寫時間囉！**\n' +
-      '請記得上去填寫下一週（週二起算）的絕境戰可出團時間喔！\n' +
-      `⚔️ 傳送門：<${sheetUrl}> \n` +
-      '@everyone 記得設定鬧鐘不要忘記啦！'
+      '📢 **記得填寫時間表！**\n' +
+      '請記得上去填寫下一週（週二起算）的可出席時間！\n' +
+      `傳送門：<${sheetUrl}>` 
   };
 
   try {

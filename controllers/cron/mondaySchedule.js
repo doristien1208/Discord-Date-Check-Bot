@@ -5,7 +5,7 @@ async function mondaySchedule(req, res) {
   const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
 
   try {
-    // 去 Google Sheet 抓 A 列所有日期（例如："⚔️ 接下來有湊滿 8 人的出團日期為：6/23, 6/24"）
+    // 去 Google Sheet 抓 A 列所有日期（例如：" 接下來有湊滿 8 人的出團日期為：6/23, 6/24"）
     const rawDates = await getRaidDates();
 
     // 切出純日期部分
@@ -15,7 +15,7 @@ async function mondaySchedule(req, res) {
       await fetch(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: '⚠️ **每週出團公告**：目前排班表上沒有任何全員到齊的時間！' })
+        body: JSON.stringify({ content: '**每週出團公告**：目前排班表上沒有任何全員到齊的時間！' })
       });
       return res.status(200).send('No dates found');
     }
@@ -23,7 +23,7 @@ async function mondaySchedule(req, res) {
     // 把 "6/23, 6/24" 變成 ['6/23', '6/24']
     const dateArray = datePart.split(',').map(d => d.trim());
 
-    // 💡 FF14 的週更新（週二到下週一）
+    // FF14 的週更新（週二到下週一）
     // 找出「明天（週二）開始的未來 7 天內」有哪些日子要出團
     const today = new Date();
 
