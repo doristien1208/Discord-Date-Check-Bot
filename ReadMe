@@ -2,4 +2,4 @@
 ngrok http 3000
 
 #啟動伺服器腳本
-node run index.js
+node index.js
