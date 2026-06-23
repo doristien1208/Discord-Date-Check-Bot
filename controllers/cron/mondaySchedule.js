@@ -1,7 +1,7 @@
 const { getRaidDates } = require('../../services/sheetService');
 
 async function mondaySchedule(req, res) {
-  console.log('⏰ [CRON] 收到週一出團公告排程指令...');
+  console.log('[CRON] 收到週一出團公告排程指令...');
   const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
 
   try {
@@ -44,7 +44,7 @@ async function mondaySchedule(req, res) {
     });
 
     let announceMessage = ' **【本週出團時間表】** \n';
-    announceMessage += `📅 本週 CD 週期：${tomorrow.getMonth() + 1}/${tomorrow.getDate()} (二) ～ ${nextMonday.getMonth() + 1}/${nextMonday.getDate()} (一)\n`;
+    announceMessage += `本週 CD 週期：${tomorrow.getMonth() + 1}/${tomorrow.getDate()} (二) ～ ${nextMonday.getMonth() + 1}/${nextMonday.getDate()} (一)\n`;
     announceMessage += '---------------------------------------\n';
 
     if (thisWeekRaidDates.length === 0) {
@@ -52,7 +52,7 @@ async function mondaySchedule(req, res) {
     } else {
       announceMessage += ' 本週預計出團日如下（請於21:00準時出沒）：\n';
       thisWeekRaidDates.forEach(date => {
-        announceMessage += `🔹 **${date}** \n`;
+        announceMessage += `**${date}** \n`;
       });
     }
     announceMessage +=
@@ -65,10 +65,10 @@ async function mondaySchedule(req, res) {
       body: JSON.stringify({ content: announceMessage })
     });
 
-    console.log('✅ 週一出團公告發送成功！');
+    console.log('週一出團公告發送成功！');
     return res.status(200).send('Schedule announced');
   } catch (error) {
-    console.error('❌ 週一出團公告發送失敗：', error.message);
+    console.error('週一出團公告發送失敗：', error.message);
     return res.status(500).send('Failed to send schedule');
   }
 }

@@ -1,0 +1,8 @@
+# 強制這些檔案在所有平台都用 LF 換行，避免 Windows 簽出時變成 CRLF
+# 而讓 bash 腳本 / Node 出錯。
+*.sh   text eol=lf
+*.js   text eol=lf
+*.json text eol=lf
+
+# Windows 原生腳本維持 CRLF
+*.ps1  text eol=crlf

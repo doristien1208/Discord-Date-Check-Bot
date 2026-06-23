@@ -22,6 +22,16 @@ const commands = [
         type: 3, // 3 代表字串 (STRING)
         required: true,
     }]
+  },
+  {
+    name: 'askdate',
+    description: '查誰還沒填出團時間表（未來 14 天）',
+    options: [{
+        name: 'target',
+        description: '輸入 all 查全員，或 @某人 / 名字 查個人',
+        type: 3, // 3 代表字串 (STRING)
+        required: true,
+    }]
   }
 ];
 
@@ -30,7 +40,7 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
 (async () => {
   try {
-    console.log('⏳ 開始向 Discord 註冊斜線指令...');
+    console.log('開始向 Discord 註冊斜線指令...');
     
     // 將指令推送到你的機器人身上 (全域註冊)
     await rest.put(
@@ -38,8 +48,8 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
       { body: commands }
     );
     
-    console.log('✅ 成功註冊 /ask 與 /note 指令！');
+    console.log('成功註冊 /ask、/note、/askdate 指令！');
   } catch (error) {
-    console.error('❌ 註冊失敗：', error);
+    console.error('註冊失敗：', error);
   }
 })();

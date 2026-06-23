@@ -1,5 +1,11 @@
-#啟動ngrok
+#啟動ngrok(部署cloud run後已棄用)
 ngrok http 3000
 
 #啟動伺服器腳本
 node index.js
+
+#部署方式(有更動腳本才執行)
+bash deploy.sh
+
+＃指令註冊
+npm run register

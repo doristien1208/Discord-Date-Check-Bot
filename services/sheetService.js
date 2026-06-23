@@ -1,10 +1,11 @@
+const fs = require('fs');
 const { google } = require('googleapis');
 
-// 設定金鑰與授權範圍
-const auth = new google.auth.GoogleAuth({
-  keyFile: './credentials.json',
-  scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
-});
+// 本機有 credentials.json 就用它；雲端(Cloud Run)沒有檔案時，
+// 自動改用執行身分的服務帳號 (ADC) — 不需要把金鑰打包進映像檔。
+const authOptions = { scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'] };
+if (fs.existsSync('./credentials.json')) authOptions.keyFile = './credentials.json';
+const auth = new google.auth.GoogleAuth(authOptions);
 
 async function getRaidDates() {
   try {

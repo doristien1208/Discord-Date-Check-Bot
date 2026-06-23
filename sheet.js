@@ -31,11 +31,11 @@ async function getRaidDates() {
       .filter(date => date && date !== '目前沒有全員到齊的日期')
       .join(', ');
 
-    return dates ? `⚔️ 接下來有湊滿 8 人的出團日期為：${dates}` : '目前沒有全員到齊的日期喔！';
+    return dates ? `接下來有湊滿 8 人的出團日期為：${dates}` : '目前沒有全員到齊的日期喔！';
 
   } catch (error) {
     // 這裡會印出更精準的錯誤訊息，方便我們除錯
-    console.error('❌ 讀取 Google Sheet 發生錯誤：', error.message);
+    console.error('讀取 Google Sheet 發生錯誤：', error.message);
     return '讀取排班表失敗，請檢查權限或檔案設定！';
   }
 }
