@@ -151,6 +151,33 @@ function findUnfilled(schedule, from, to, names) {
   return { dates: dates.map(d => ({ dateStr: d.dateStr, date: d.date })), perMember, incompleteMembers };
 }
 
+/**
+ * 找出區間內「全員皆 O」的出團日（湊滿 8 人）。
+ * 規則：當天 8 位成員的狀態全部都是 'O' 才算；X / △ / 空白 都不算。
+ * @returns {{dateStr:string,date:Date}[]} 依時間排序
+ */
+function fullAvailableDates(schedule, from, to) {
+  const fromMid = new Date(from); fromMid.setHours(0, 0, 0, 0);
+  const toMid = new Date(to); toMid.setHours(23, 59, 59, 999);
+  const names = MEMBERS.map(m => m.sheetName);
+
+  return [...schedule.values()]
+    .filter(e => e.date >= fromMid && e.date <= toMid)
+    .filter(e => names.every(n => String(e.statuses[n] ?? '').trim() === 'O'))
+    .sort((a, b) => a.date - b.date)
+    .map(e => ({ dateStr: dateKey(e.date), date: e.date }));
+}
+
+/** 算出「今天所屬的 CD 週」(以週二為第一天，週二~下週一)。給週一公告用。 */
+function currentCdWeek(ref = new Date()) {
+  const d = new Date(ref); d.setHours(0, 0, 0, 0);
+  // getDay(): 0=日 1=一 2=二 ... 6=六。往回退到最近的週二(含今天)。
+  const back = (d.getDay() - 2 + 7) % 7;
+  const start = new Date(d); start.setDate(d.getDate() - back);
+  const end = new Date(start); end.setDate(start.getDate() + 6); end.setHours(23, 59, 59, 999);
+  return { start, end };
+}
+
 /** 算出「下一個 CD 週」的區間 (以週二為第一天，週二~下週一)。給週六催填用。 */
 function nextCdWeek(ref = new Date()) {
   const d = new Date(ref); d.setHours(0, 0, 0, 0);
@@ -167,6 +194,8 @@ module.exports = {
   fetchGrid,
   parseSchedule,
   findUnfilled,
+  fullAvailableDates,
+  currentCdWeek,
   nextCdWeek,
   isFilled,
   dateKey,

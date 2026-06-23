@@ -4,14 +4,21 @@ const { REST, Routes } = require('discord.js');
 // 這裡定義我們要教給機器人的技能
 const commands = [
   {
+    // /ask 是複合(父)指令，底下掛子指令；未來新功能就在 options 再加一個 type:1 的子指令
     name: 'ask',
-    description: '詢問排班表與拓荒攻略相關問題',
-    options: [{
-        name: 'question',
-        description: '你想問什麼？（例如：明天有要打嗎？）',
-        type: 3, // 3 代表字串 (STRING)
-        required: true,
-    }]
+    description: '查詢類指令（出團時間等，未來持續擴充）',
+    options: [
+      {
+        name: 'datecheck',
+        description: '查未來出團時間',
+        type: 1, // 1 代表子指令 (SUB_COMMAND)
+      },
+      {
+        name: 'tour',
+        description: '拓荒進度統計（時數、場次、最遠進度、卡關）',
+        type: 1, // 1 代表子指令 (SUB_COMMAND)
+      },
+    ]
   },
   {
     name: 'note',
@@ -24,7 +31,7 @@ const commands = [
     }]
   },
   {
-    name: 'askdate',
+    name: 'memberdatecheck',
     description: '查誰還沒填出團時間表（未來 14 天）',
     options: [{
         name: 'target',
@@ -48,7 +55,7 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
       { body: commands }
     );
     
-    console.log('成功註冊 /ask、/note、/askdate 指令！');
+    console.log('成功註冊 /ask (datecheck, tour)、/note、/memberdatecheck 指令！');
   } catch (error) {
     console.error('註冊失敗：', error);
   }

@@ -2,19 +2,23 @@ const { InteractionResponseType } = require('discord-interactions');
 const { loadSchedule, findUnfilled } = require('../../services/scheduleGridService');
 const { resolveTarget, bySheetName, mention } = require('../../config/members');
 
-const WINDOW_DAYS = 14; // /askdate all 查「今天起未來 14 天」
+const WINDOW_DAYS = 14; // /memberdatecheck all 查「今天起未來 14 天」
 
 /**
- * /askdate <target>
- *   target = all        → 未來 14 天內，誰還沒把表填完
+ * /memberdatecheck <target>
+ *   target = all          → 未來 14 天內，誰還沒把表填完
  *   target = @某人/ID/名字 → 查該成員未來 14 天缺填的日期
  */
-async function handleAskdate(interaction, res) {
+async function handleMemberDateCheck(interaction, res) {
   const appId = process.env.DISCORD_CLIENT_ID;
   const patchUrl = `https://discord.com/api/v10/webhooks/${appId}/${interaction.token}/messages/@original`;
 
   // 先回 defer，爭取最多 15 分鐘去查表
-  res.json({ type: InteractionResponseType.DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE });
+  // flags: 64 = EPHEMERAL，私密狀態會被後續 PATCH 繼承，所以只有自己看得到
+  res.json({
+    type: InteractionResponseType.DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE,
+    data: { flags: 64 },
+  });
 
   const rawInput = interaction.data?.options?.[0]?.value ?? '';
   const target = resolveTarget(rawInput);
@@ -39,7 +43,7 @@ async function handleAskdate(interaction, res) {
       }
     }
   } catch (error) {
-    console.error('[INTERACTION] 執行 /askdate 時發生錯誤：', error);
+    console.error('[INTERACTION] 執行 /memberdatecheck 時發生錯誤：', error);
     content = '去查表的時候出錯了，請稍後再試或檢查表單權限。';
   }
 
@@ -88,4 +92,4 @@ function formatOne(member, result, windowDays) {
   return `${mention(member)} 在 ${rangeLabel(dates, windowDays)} 內還沒填：\n${missing.join('、')}`;
 }
 
-module.exports = handleAskdate;
+module.exports = handleMemberDateCheck;
