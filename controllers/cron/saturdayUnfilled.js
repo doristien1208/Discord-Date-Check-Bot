@@ -24,11 +24,13 @@ async function saturdayUnfilled(req, res) {
         '**填表提醒**\n' +
         `下一週 CD（${start.getMonth() + 1}/${start.getDate()} 起）的表好像還沒建立喔，請先把日期排好！\n` +
         `傳送門：<${sheetUrl}>`;
-    } else if (incompleteMembers.length === 0) {
-      content =
-        '**填表進度確認**\n' +
-        `下一週 CD（${dates[0].dateStr} ～ ${dates[dates.length - 1].dateStr}）全員都填完了，明天就能順利統計天數！`;
-    } else {
+     } 
+    //else if (incompleteMembers.length === 0) {
+    //   content =
+    //     '**填表進度確認**\n' +
+    //     `下一週 CD（${dates[0].dateStr} ～ ${dates[dates.length - 1].dateStr}）全員都填完了，明天就能順利統計天數！`;
+    // } 
+    else {
       content =
         '**填表催繳！** 明天（週日）就要統計天數囉\n' +
         `下一週 CD：${dates[0].dateStr} ～ ${dates[dates.length - 1].dateStr}\n` +

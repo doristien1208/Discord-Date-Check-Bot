@@ -1,7 +1,7 @@
 const { loadSchedule, fullAvailableDates, currentCdWeek } = require('../../services/scheduleGridService');
 
 async function mondaySchedule(req, res) {
-  console.log('[CRON] 收到週一出團公告排程指令...');
+  console.log('[CRON] 收到週日出團公告排程指令...');
   const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
 
   try {
@@ -18,9 +18,9 @@ async function mondaySchedule(req, res) {
     announceMessage += '---------------------------------------\n';
 
     if (thisWeekRaidDates.length === 0) {
-      announceMessage += '本週一天都沒有湊齊！大家可以放假去打野團或休息了！\n';
+      announceMessage += '本週沒有湊齊8人的天數，休團一週\n';
     } else {
-      announceMessage += '本週預計出團日如下（請於21:00準時出沒）：\n';
+      announceMessage += '本週預計出團日如下（請於21:00準時出沒Elemental）：\n';
       thisWeekRaidDates.forEach(date => {
         announceMessage += `**${date}**\n`;
       });
@@ -35,10 +35,10 @@ async function mondaySchedule(req, res) {
       body: JSON.stringify({ content: announceMessage }),
     });
 
-    console.log('週一出團公告發送成功！');
+    console.log('週日出團公告發送成功！');
     return res.status(200).send('Schedule announced');
   } catch (error) {
-    console.error('週一出團公告發送失敗：', error.message);
+    console.error('週日出團公告發送失敗：', error.message);
     return res.status(500).send('Failed to send schedule');
   }
 }
