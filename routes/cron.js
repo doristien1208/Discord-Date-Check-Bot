@@ -1,12 +1,12 @@
 const { Router } = require('express');
-const sundayReminder = require('../controllers/cron/sundayReminder');
-const mondaySchedule = require('../controllers/cron/mondaySchedule');
-const saturdayUnfilled = require('../controllers/cron/saturdayUnfilled');
+const reminder = require('../controllers/cron/reminder');
+const schedule = require('../controllers/cron/schedule');
+const unfilled = require('../controllers/cron/unfilled');
 
 const router = Router();
 
-router.post('/cron/sunday-reminder', sundayReminder);
-router.post('/cron/monday-schedule', mondaySchedule);
-router.post('/cron/saturday-unfilled', saturdayUnfilled);
+router.post('/cron/reminder', reminder);
+router.post('/cron/schedule', schedule);
+router.post('/cron/unfilled', unfilled);
 
 module.exports = router;

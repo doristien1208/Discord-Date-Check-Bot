@@ -7,7 +7,7 @@ const { bySheetName, mention } = require('../../config/members');
  * 由外部排程器 (Render Cron / cron-job.org 等) 以 POST 觸發。
  *   建議 cron：0 12 * * 6 （注意伺服器時區，台灣時間需設 UTC 04:00 → 0 4 * * 6）
  */
-async function saturdayUnfilled(req, res) {
+async function unfilled(req, res) {
   console.log('[CRON] 收到週六催填排程指令...');
   const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
   const sheetUrl = `https://docs.google.com/spreadsheets/d/${process.env.SPREADSHEET_ID}/edit`;
@@ -18,19 +18,19 @@ async function saturdayUnfilled(req, res) {
     const schedule = await loadSchedule(now);
     const { dates, perMember, incompleteMembers } = findUnfilled(schedule, start, end);
 
+    // 全員都填完了 → 不發訊息，直接結束
+    if (dates.length && incompleteMembers.length === 0) {
+      console.log('全員已填完，本次不發送訊息');
+      return res.status(200).send('All filled, no message sent');
+    }
+
     let content;
     if (!dates.length) {
       content =
         '**填表提醒**\n' +
         `下一週 CD（${start.getMonth() + 1}/${start.getDate()} 起）的表好像還沒建立喔，請先把日期排好！\n` +
         `傳送門：<${sheetUrl}>`;
-     } 
-    //else if (incompleteMembers.length === 0) {
-    //   content =
-    //     '**填表進度確認**\n' +
-    //     `下一週 CD（${dates[0].dateStr} ～ ${dates[dates.length - 1].dateStr}）全員都填完了，明天就能順利統計天數！`;
-    // } 
-    else {
+    } else {
       content =
         '**填表催繳！** 明天（週日）就要統計天數囉\n' +
         `下一週 CD：${dates[0].dateStr} ～ ${dates[dates.length - 1].dateStr}\n` +
@@ -60,4 +60,4 @@ async function saturdayUnfilled(req, res) {
   }
 }
 
-module.exports = saturdayUnfilled;
+module.exports = unfilled;

@@ -1,26 +1,26 @@
-const { loadSchedule, fullAvailableDates, currentCdWeek } = require('../../services/scheduleGridService');
+const { loadSchedule, fullAvailableDates, nextCdWeek } = require('../../services/scheduleGridService');
 
-async function mondaySchedule(req, res) {
+async function schedule(req, res) {
   console.log('[CRON] 收到週日出團公告排程指令...');
   const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
 
   try {
-    // 本週 CD 週期 = 今天所屬的那一週（週二 ~ 下週一），不會跨到下一個區塊
+    // 下一週 CD 週期 = 今天之後的下一個週二起算的那一週（週二 ~ 下週一）
     const today = new Date();
-    const { start, end } = currentCdWeek(today);
+    const { start, end } = nextCdWeek(today);
 
     // 直接從「出團時間表」O/X/△ 格子算出「全員皆 O」的出團日
     const schedule = await loadSchedule(today);
     const thisWeekRaidDates = fullAvailableDates(schedule, start, end).map(d => d.dateStr);
 
-    let announceMessage = '**【本週出團時間表】**\n';
-    announceMessage += `本週 CD 週期：${start.getMonth() + 1}/${start.getDate()} (二) ～ ${end.getMonth() + 1}/${end.getDate()} (一)\n`;
+    let announceMessage = '**【下一週出團時間表】**\n';
+    announceMessage += `下一週 CD 週期：${start.getMonth() + 1}/${start.getDate()} (二) ～ ${end.getMonth() + 1}/${end.getDate()} (一)\n`;
     announceMessage += '---------------------------------------\n';
 
     if (thisWeekRaidDates.length === 0) {
-      announceMessage += '本週沒有湊齊8人的天數，休團一週\n';
+      announceMessage += '下一週沒有湊齊8人的天數，休團一週\n';
     } else {
-      announceMessage += '本週預計出團日如下（請於21:00準時出沒Elemental）：\n';
+      announceMessage += '下一週預計出團日如下（請於21:00準時出沒Elemental）：\n';
       thisWeekRaidDates.forEach(date => {
         announceMessage += `**${date}**\n`;
       });
@@ -43,4 +43,4 @@ async function mondaySchedule(req, res) {
   }
 }
 
-module.exports = mondaySchedule;
+module.exports = schedule;

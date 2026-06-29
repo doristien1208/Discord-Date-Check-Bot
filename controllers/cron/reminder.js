@@ -1,4 +1,4 @@
-async function sundayReminder(req, res) {
+async function reminder(req, res) {
   console.log('[CRON] 收到週五催填排程指令...');
   const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
   const sheetUrl = `https://docs.google.com/spreadsheets/d/${process.env.SPREADSHEET_ID}/edit`;
@@ -7,7 +7,7 @@ async function sundayReminder(req, res) {
     content:
       '**記得填寫時間表！**\n' +
       '請記得上去填寫下一週的可出席時間，三角形者請務必於備註說明最快可確任時間，若已填寫完成請無視本訊息。\n' +
-      `傳送門：<${sheetUrl}>` 
+      `傳送門：<${sheetUrl}>`
   };
 
   try {
@@ -29,4 +29,4 @@ async function sundayReminder(req, res) {
   }
 }
 
-module.exports = sundayReminder;
+module.exports = reminder;

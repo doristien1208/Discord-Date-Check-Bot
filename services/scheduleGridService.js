@@ -168,17 +168,7 @@ function fullAvailableDates(schedule, from, to) {
     .map(e => ({ dateStr: dateKey(e.date), date: e.date }));
 }
 
-/** 算出「今天所屬的 CD 週」(以週二為第一天，週二~下週一)。給週一公告用。 */
-function currentCdWeek(ref = new Date()) {
-  const d = new Date(ref); d.setHours(0, 0, 0, 0);
-  // getDay(): 0=日 1=一 2=二 ... 6=六。往回退到最近的週二(含今天)。
-  const back = (d.getDay() - 2 + 7) % 7;
-  const start = new Date(d); start.setDate(d.getDate() - back);
-  const end = new Date(start); end.setDate(start.getDate() + 6); end.setHours(23, 59, 59, 999);
-  return { start, end };
-}
-
-/** 算出「下一個 CD 週」的區間 (以週二為第一天，週二~下週一)。給週六催填用。 */
+/** 算出「下一個 CD 週」的區間 (以週二為第一天，週二~下週一)。給週六催填、週日公告用。 */
 function nextCdWeek(ref = new Date()) {
   const d = new Date(ref); d.setHours(0, 0, 0, 0);
   // getDay(): 0=日 1=一 2=二 ... 6=六。要找「之後的下一個週二」。
@@ -195,7 +185,6 @@ module.exports = {
   parseSchedule,
   findUnfilled,
   fullAvailableDates,
-  currentCdWeek,
   nextCdWeek,
   isFilled,
   dateKey,
