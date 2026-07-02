@@ -1,6 +1,6 @@
 const { InteractionType, InteractionResponseType } = require('discord-interactions');
 const handleAsk = require('./commands/ask');
-const handleNote = require('./commands/note');
+const { handleNote, handleNoteModalSubmit, NOTE_ADD_MODAL_ID } = require('./commands/note');
 const handleMemberDateCheck = require('./commands/memberDateCheck');
 
 async function handleInteraction(req, res) {
@@ -26,6 +26,19 @@ async function handleInteraction(req, res) {
     return res.json({
       type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
       data: { content: '光之助理連線成功！不過我的大腦還沒裝上去，稍等我一下！' },
+    });
+  }
+
+  // Type 5：Modal Submit（例如 /note add 的表單送出）
+  if (interaction.type === InteractionType.MODAL_SUBMIT) {
+    const customId = interaction.data?.custom_id ?? '';
+    console.log(`[INTERACTION] 處理 Modal Submit: ${customId}`);
+
+    if (customId === NOTE_ADD_MODAL_ID) return handleNoteModalSubmit(interaction, res);
+
+    return res.json({
+      type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+      data: { content: '未知的表單。', flags: 64 },
     });
   }
 

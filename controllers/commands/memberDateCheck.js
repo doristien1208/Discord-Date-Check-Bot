@@ -76,7 +76,7 @@ function formatAll(result, windowDays) {
     const missing = perMember[name];
     msg += `${mention(m)}　缺：${missing.join('、')}\n`;
   }
-  msg += '---------------------------------------\n請儘快上去補完～';
+  msg += '---------------------------------------';
   return msg;
 }
 

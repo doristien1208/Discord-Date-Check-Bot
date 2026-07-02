@@ -21,14 +21,36 @@ const commands = [
     ]
   },
   {
+    // /note 是複合(父)指令：add 走 Modal 表單（支援多行輸入），search 依 phase 或日期查詢
     name: 'note',
-    description: '記錄今天的拓荒筆記或機制重點',
-    options: [{
-        name: 'content',
-        description: '筆記內容（例如：運動會xxx要注意什麼）',
-        type: 3, // 3 代表字串 (STRING)
-        required: true,
-    }]
+    description: '拓荒筆記（新增 / 查詢）',
+    options: [
+      {
+        name: 'add',
+        description: '新增筆記（會跳出多行輸入視窗）',
+        type: 1, // 1 代表子指令 (SUB_COMMAND)
+      },
+      {
+        name: 'search',
+        description: '查詢筆記（phase 或 date 至少填一個）',
+        type: 1, // 1 代表子指令 (SUB_COMMAND)
+        options: [
+          {
+            name: 'phase',
+            description: 'Phase 數字（例如 3）',
+            type: 4, // 4 代表整數 (INTEGER)
+            required: false,
+            min_value: 1,
+          },
+          {
+            name: 'date',
+            description: '日期 M/D（例如 6/23，查當天建立的筆記）',
+            type: 3, // 3 代表字串 (STRING)
+            required: false,
+          },
+        ],
+      },
+    ]
   },
   {
     name: 'memberdatecheck',
@@ -55,7 +77,7 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
       { body: commands }
     );
     
-    console.log('成功註冊 /ask (datecheck, tour)、/note、/memberdatecheck 指令！');
+    console.log('成功註冊 /ask (datecheck, tour)、/note (add, search)、/memberdatecheck 指令！');
   } catch (error) {
     console.error('註冊失敗：', error);
   }

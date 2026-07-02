@@ -22,7 +22,11 @@ gcloud services enable run.googleapis.com cloudscheduler.googleapis.com sheets.g
 
 ## 1. 部署服務（用原始碼，免寫 Dockerfile）
 
-在專案根目錄執行（把 `<...>` 換成 `.env` 裡對應的值）：
+> 快速部署：專案根目錄已有一鍵腳本，會自動從 `.env` 讀取環境變數後執行下方指令。
+> - Mac / Linux / Git Bash：`bash deploy.sh`
+> - Windows PowerShell：`.\deploy.ps1`
+
+手動部署則在專案根目錄執行（把 `<...>` 換成 `.env` 裡對應的值）：
 
 ```bash
 gcloud run deploy ffxiv-raid-bot \
@@ -32,7 +36,7 @@ gcloud run deploy ffxiv-raid-bot \
   --service-account discorddatebot@discorddatebot.iam.gserviceaccount.com \
   --min-instances 0 \
   --max-instances 2 \
-  --set-env-vars "DISCORD_PUBLIC_KEY=<public_key>,DISCORD_CLIENT_ID=<client_id>,SPREADSHEET_ID=<sheet_id>,DISCORD_WEBHOOK_URL=<webhook_url>"
+  --set-env-vars "DISCORD_PUBLIC_KEY=<public_key>,DISCORD_CLIENT_ID=<client_id>,SPREADSHEET_ID=<sheet_id>,DISCORD_WEBHOOK_URL=<webhook_url>,FIRESTORE_PROJECT_ID=discordbot-59caf"
 ```
 
 重點說明：
@@ -48,6 +52,37 @@ gcloud run deploy ffxiv-raid-bot \
 
 > 進階（正式環境建議）：webhook URL 這類較敏感的值，可改用 Secret Manager：
 > `--set-secrets "DISCORD_WEBHOOK_URL=discord-webhook:latest"`，先 `gcloud secrets create ...` 建好。
+
+---
+
+## 1.5 Firestore（/note 筆記功能）
+
+筆記資料存在 **另一個專案** `discordbot-59caf`（Firebase 專案「DiscordBot」）的
+Firestore (default) database（`nam5`），集合 `note`，欄位：
+
+| 欄位 | 型別 | 說明 |
+|---|---|---|
+| `userId` | string | Discord 使用者 ID |
+| `phase` | number | 拓荒 phase |
+| `noteContent` | string | 筆記內容（≤1000 字，含換行） |
+| `createTime` | Timestamp | 建立時間 |
+
+程式透過環境變數 `FIRESTORE_PROJECT_ID=discordbot-59caf` 指定跨專案連線
+（本機用 `credentials.json`、Cloud Run 用 ADC，同 Sheets 的雙軌模式）。
+
+**一次性授權**（服務帳號在 `discordbot-59caf` 需要讀寫權限）：
+
+```bash
+gcloud projects add-iam-policy-binding discordbot-59caf \
+  --member="serviceAccount:discorddatebot@discorddatebot.iam.gserviceaccount.com" \
+  --role="roles/datastore.user"
+```
+
+免費額度檢核：Firestore 每日 50k 讀 / 20k 寫 / 1 GiB 儲存，只有 (default) database 適用；
+本功能每次新增 1 寫、每次查詢 ≤50 讀，遠低於額度，維持 $0。
+
+> 下一階段 RAG：同一 document 直接加 `embedding`（vector）欄位 + 建 vector index 即可，
+> 不需要資料遷移；Embedding/生成走 Google AI Studio（Gemini API）免費額度。
 
 ---
 
@@ -83,29 +118,37 @@ https://SERVICE_URL/interactions
 
 時區直接選 `Asia/Taipei`，不用自己換算 UTC。
 
+對應程式端點（`routes/cron.js`）：
+
+| 端點 | 內容 | 建議排程 |
+|---|---|---|
+| `POST /cron/reminder` | 週五催填公告（純提醒，不點名） | 週五 12:00 |
+| `POST /cron/unfilled` | 週六催填（查下一個 CD 週還沒填完的人並 @ 標記；全員填完不發） | 週六 12:00 |
+| `POST /cron/schedule` | 週日出團公告（找出下週「全員皆 O」的出團日） | 週日 12:00 |
+
 ```bash
-# 週六中午 12:00 — 催填（誰還沒填下一個 CD 週）
+# 週五中午 12:00 — 催填公告（純提醒）
+gcloud scheduler jobs create http friday-reminder \
+  --location asia-east1 \
+  --schedule "0 12 * * 5" \
+  --time-zone "Asia/Taipei" \
+  --uri "https://SERVICE_URL/cron/reminder" \
+  --http-method POST
+
+# 週六中午 12:00 — 催填（點名誰還沒填下一個 CD 週）
 gcloud scheduler jobs create http saturday-unfilled \
   --location asia-east1 \
   --schedule "0 12 * * 6" \
   --time-zone "Asia/Taipei" \
-  --uri "https://SERVICE_URL/cron/saturday-unfilled" \
+  --uri "https://SERVICE_URL/cron/unfilled" \
   --http-method POST
 
-# 週日催填（既有）
-gcloud scheduler jobs create http sunday-reminder \
+# 週日中午 12:00 — 下一週出團公告
+gcloud scheduler jobs create http sunday-schedule \
   --location asia-east1 \
   --schedule "0 12 * * 0" \
   --time-zone "Asia/Taipei" \
-  --uri "https://SERVICE_URL/cron/sunday-reminder" \
-  --http-method POST
-
-# 週一出團公告（既有）
-gcloud scheduler jobs create http monday-schedule \
-  --location asia-east1 \
-  --schedule "0 9 * * 1" \
-  --time-zone "Asia/Taipei" \
-  --uri "https://SERVICE_URL/cron/monday-schedule" \
+  --uri "https://SERVICE_URL/cron/schedule" \
   --http-method POST
 ```
 
@@ -121,7 +164,7 @@ gcloud scheduler jobs run saturday-unfilled --location asia-east1
 ## 5. 冷啟動注意事項
 
 - **Discord 互動**：PING→PONG、以及指令的第一個回應必須 <3 秒。冷啟動可能讓「閒置後的第一個指令」逾時；
-  通常再按一次就好（這時已經熱機）。`/ask`、`/askdate` 都用 DEFERRED 回應，所以查表的耗時不是問題，**只有冷開機那幾秒**是風險。
+  通常再按一次就好（這時已經熱機）。`/ask`、`/memberdatecheck` 都用 DEFERRED 回應，所以查表的耗時不是問題，**只有冷開機那幾秒**是風險。
   完全不能容忍就設 `--min-instances 1`（會有小額常態費用）。
 - **Scheduler→/cron**：沒有 3 秒限制，冷啟動沒影響。
 
@@ -137,4 +180,5 @@ gcloud scheduler jobs run saturday-unfilled --location asia-east1
 
 ## 重新部署
 
-改完程式後，重跑步驟 1 的 `gcloud run deploy ... --source .` 即可（環境變數沒變可省略 `--set-env-vars`）。
+改完程式後，重跑一次 `bash deploy.sh`（或 `.\deploy.ps1`）即可；
+手動的話重跑步驟 1 的 `gcloud run deploy ... --source .`（環境變數沒變可省略 `--set-env-vars`）。
