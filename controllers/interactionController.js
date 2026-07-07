@@ -2,6 +2,7 @@ const { InteractionType, InteractionResponseType } = require('discord-interactio
 const handleAsk = require('./commands/ask');
 const { handleNote, handleNoteModalSubmit, NOTE_ADD_MODAL_ID } = require('./commands/note');
 const handleMemberDateCheck = require('./commands/memberDateCheck');
+const handleToday = require('./commands/today');
 
 async function handleInteraction(req, res) {
   const interaction = req.body;
@@ -21,6 +22,7 @@ async function handleInteraction(req, res) {
     if (cmdName === 'ask')             return handleAsk(interaction, res);
     if (cmdName === 'note')            return handleNote(interaction, res);
     if (cmdName === 'memberdatecheck') return handleMemberDateCheck(interaction, res);
+    if (cmdName === 'today')           return handleToday(interaction, res);
 
     // 其他未知指令
     return res.json({

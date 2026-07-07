@@ -1,6 +1,6 @@
 const fs = require('fs');
 const { google } = require('googleapis');
-const { toDate, dateKey } = require('./scheduleGridService');
+const { toDate, dateKey, dateLabel } = require('./scheduleGridService');
 
 // 本機有 credentials.json 就用它；雲端(Cloud Run)沒有檔案時，
 // 自動改用執行身分的服務帳號 (ADC) — 不需要把金鑰打包進映像檔。
@@ -36,7 +36,7 @@ async function getUpcomingRaidDates(ref = new Date()) {
     })
     .filter(d => d && d >= today)        // 只留今天(含)以後
     .sort((a, b) => a - b)
-    .map(d => dateKey(d));               // 轉成 "M/D"
+    .map(d => dateLabel(d));             // 轉成 "M/D (週幾)"
 
   return [...new Set(dates)];            // 去重
 }

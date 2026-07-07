@@ -61,6 +61,10 @@ const commands = [
         type: 3, // 3 代表字串 (STRING)
         required: true,
     }]
+  },
+  {
+    name: 'today',
+    description: '檢查今天是否出團（全員到齊）',
   }
 ];
 
@@ -77,7 +81,7 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
       { body: commands }
     );
     
-    console.log('成功註冊 /ask (datecheck, tour)、/note (add, search)、/memberdatecheck 指令！');
+    console.log('成功註冊 /ask (datecheck, tour)、/note (add, search)、/memberdatecheck、/today 指令！');
   } catch (error) {
     console.error('註冊失敗：', error);
   }

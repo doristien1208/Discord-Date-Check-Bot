@@ -1,4 +1,4 @@
-const { loadSchedule, fullAvailableDates, nextCdWeek } = require('../../services/scheduleGridService');
+const { loadSchedule, fullAvailableDates, nextCdWeek, dateLabel } = require('../../services/scheduleGridService');
 
 async function schedule(req, res) {
   console.log('[CRON] 收到週日出團公告排程指令...');
@@ -11,7 +11,7 @@ async function schedule(req, res) {
 
     // 直接從「出團時間表」O/X/△ 格子算出「全員皆 O」的出團日
     const schedule = await loadSchedule(today);
-    const thisWeekRaidDates = fullAvailableDates(schedule, start, end).map(d => d.dateStr);
+    const thisWeekRaidDates = fullAvailableDates(schedule, start, end).map(d => dateLabel(d.date));
 
     let announceMessage = '**【下一週出團時間表】**\n';
     announceMessage += `下一週 CD 週期：${start.getMonth() + 1}/${start.getDate()} (二) ～ ${end.getMonth() + 1}/${end.getDate()} (一)\n`;

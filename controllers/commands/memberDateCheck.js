@@ -1,5 +1,5 @@
 const { InteractionResponseType } = require('discord-interactions');
-const { loadSchedule, findUnfilled } = require('../../services/scheduleGridService');
+const { loadSchedule, findUnfilled, dateLabel } = require('../../services/scheduleGridService');
 const { resolveTarget, bySheetName, mention } = require('../../config/members');
 
 const WINDOW_DAYS = 14; // /memberdatecheck all 查「今天起未來 14 天」
@@ -56,7 +56,7 @@ async function handleMemberDateCheck(interaction, res) {
 
 function rangeLabel(dates, windowDays) {
   if (!dates.length) return `未來 ${windowDays} 天`;
-  return `${dates[0].dateStr} ～ ${dates[dates.length - 1].dateStr}`;
+  return `${dateLabel(dates[0].date)} ～ ${dateLabel(dates[dates.length - 1].date)}`;
 }
 
 function formatAll(result, windowDays) {

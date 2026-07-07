@@ -1,4 +1,4 @@
-const { loadSchedule, findUnfilled, nextCdWeek } = require('../../services/scheduleGridService');
+const { loadSchedule, findUnfilled, nextCdWeek, dateLabel } = require('../../services/scheduleGridService');
 const { bySheetName, mention } = require('../../config/members');
 
 /**
@@ -33,7 +33,7 @@ async function unfilled(req, res) {
     } else {
       content =
         '**填表催繳！** 明天（週日）就要統計天數囉\n' +
-        `下一週 CD：${dates[0].dateStr} ～ ${dates[dates.length - 1].dateStr}\n` +
+        `下一週 CD：${dateLabel(dates[0].date)} ～ ${dateLabel(dates[dates.length - 1].date)}\n` +
         '---------------------------------------\n' +
         '以下這些人還沒填完，麻煩盡快補上：\n';
       for (const name of incompleteMembers) {

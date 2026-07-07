@@ -57,6 +57,12 @@ function dateKey(d) {
   return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
+// 顯示用：M/D (週幾)，例如 "7/1 (三)"。注意別拿來當 Map 的 key。
+const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
+function dateLabel(d) {
+  return `${d.getMonth() + 1}/${d.getDate()} (${WEEKDAYS[d.getDay()]})`;
+}
+
 /**
  * 解析整片 grid → 攤平的排班表。
  * @returns {Map<string, {date: Date, statuses: Object<string,string>}>}
@@ -140,10 +146,10 @@ function findUnfilled(schedule, from, to, names) {
   const perMember = {};
   for (const name of targetNames) perMember[name] = [];
 
-  for (const { dateStr, entry } of dates) {
+  for (const { entry } of dates) {
     for (const name of targetNames) {
       const status = entry.statuses[name]; // 沒這格 → undefined → 視為沒填
-      if (!isFilled(status)) perMember[name].push(dateStr);
+      if (!isFilled(status)) perMember[name].push(dateLabel(entry.date)); // 顯示帶星期
     }
   }
 
@@ -188,6 +194,7 @@ module.exports = {
   nextCdWeek,
   isFilled,
   dateKey,
+  dateLabel,
   toDate,
   // 高階便利函式：直接讀表 + 解析
   async loadSchedule(ref = new Date()) {
