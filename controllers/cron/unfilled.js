@@ -1,4 +1,4 @@
-const { loadSchedule, findUnfilled, nextCdWeek, dateLabel } = require('../../services/scheduleGridService');
+const { loadSchedule, findUnfilled, nextCdWeek, dateLabel, weekUrl } = require('../../services/scheduleGridService');
 const { bySheetName, mention } = require('../../config/members');
 
 /**
@@ -10,7 +10,6 @@ const { bySheetName, mention } = require('../../config/members');
 async function unfilled(req, res) {
   console.log('[CRON] 收到週六催填排程指令...');
   const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
-  const sheetUrl = `https://docs.google.com/spreadsheets/d/${process.env.SPREADSHEET_ID}/edit`;
 
   try {
     const now = new Date();
@@ -23,6 +22,9 @@ async function unfilled(req, res) {
       console.log('全員已填完，本次不發送訊息');
       return res.status(200).send('All filled, no message sent');
     }
+
+    // 表還沒建立時 weekUrl 會退回整份試算表連結
+    const sheetUrl = await weekUrl(schedule, start, end);
 
     let content;
     if (!dates.length) {
@@ -42,7 +44,7 @@ async function unfilled(req, res) {
       }
       content +=
         '---------------------------------------\n' +
-        `傳送門：<${sheetUrl}>`;
+        `傳送門：[點我直接前往下一週](<${sheetUrl}>)`;
     }
 
     const response = await fetch(webhookUrl, {

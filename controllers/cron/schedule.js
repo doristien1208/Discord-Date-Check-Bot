@@ -1,4 +1,5 @@
-const { loadSchedule, fullAvailableDates, nextCdWeek, dateLabel } = require('../../services/scheduleGridService');
+const { loadSchedule, fullAvailableDates, findTentative, nextCdWeek, dateLabel, weekUrl } = require('../../services/scheduleGridService');
+const { bySheetName, mention } = require('../../config/members');
 
 async function schedule(req, res) {
   console.log('[CRON] 收到週日出團公告排程指令...');
@@ -13,6 +14,9 @@ async function schedule(req, res) {
     const schedule = await loadSchedule(today);
     const thisWeekRaidDates = fullAvailableDates(schedule, start, end).map(d => dateLabel(d.date));
 
+    // 沒有人 X、但有人 △ 的日子：只差 △ 的人確認就可能出團
+    const tentative = findTentative(schedule, start, end);
+
     let announceMessage = '**【下一週出團時間表】**\n';
     announceMessage += `下一週 CD 週期：${start.getMonth() + 1}/${start.getDate()} (二) ～ ${end.getMonth() + 1}/${end.getDate()} (一)\n`;
     announceMessage += '---------------------------------------\n';
@@ -25,6 +29,18 @@ async function schedule(req, res) {
         announceMessage += `**${date}**\n`;
       });
     }
+
+    if (tentative.members.length) {
+      announceMessage +=
+        '---------------------------------------\n' +
+        '**以下日期只差 △ 確認就可能出團，出團日可能會再變動**\n' +
+        '請以下成員盡快確認三角形那幾天是否可以出團，並更新時間表：\n';
+      for (const name of tentative.members) {
+        announceMessage += `${mention(bySheetName(name))}　待確認：${tentative.perMember[name].join('、')}\n`;
+      }
+      announceMessage += `傳送門：[點我直接前往下一週](<${await weekUrl(schedule, start, end)}>)\n`;
+    }
+
     announceMessage +=
       '---------------------------------------\n' +
       '如有臨時請假，請務必提早於群組通知！';
@@ -32,7 +48,7 @@ async function schedule(req, res) {
     await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: announceMessage }),
+      body: JSON.stringify({ content: announceMessage, allowed_mentions: { parse: ['users'] } }),
     });
 
     console.log('週日出團公告發送成功！');

@@ -65,15 +65,15 @@ function dateLabel(d) {
 
 /**
  * 解析整片 grid → 攤平的排班表。
- * @returns {Map<string, {date: Date, statuses: Object<string,string>}>}
- *          key 為 "M/D"
+ * @returns {Map<string, {date: Date, statuses: Object<string,string>, anchorRow: number}>}
+ *          key 為 "M/D"；anchorRow = 該週區塊的錨點列號(1-based)，給跳週連結用
  */
 function parseSchedule(grid, ref = new Date()) {
   const schedule = new Map();
   let currentCols = null; // { colIndex: Date }
 
-  for (const rawRow of grid) {
-    const row = rawRow || [];
+  for (let r = 0; r < grid.length; r++) {
+    const row = grid[r] || [];
 
     // 這一列是不是「日期列」？(任一格符合 M/D)
     const dateCols = {};
@@ -88,11 +88,14 @@ function parseSchedule(grid, ref = new Date()) {
     }
     if (hasDate) {
       currentCols = dateCols;
+      // 錨點 = 日期列的上一列 (星期列，A 欄是週次的合併格)。
+      // grid 從 A1 開始、中間空列 API 會保留成 []，所以 index r 的上一列列號剛好就是 r。
+      const anchorRow = Math.max(1, r);
       // 先在 schedule 建立這些日期的空殼
       for (const c of Object.keys(dateCols)) {
         const d = dateCols[c];
         const k = dateKey(d);
-        if (!schedule.has(k)) schedule.set(k, { date: d, statuses: {} });
+        if (!schedule.has(k)) schedule.set(k, { date: d, statuses: {}, anchorRow });
       }
       continue;
     }
@@ -119,6 +122,15 @@ function isFilled(status) {
   return status !== undefined && status !== null && String(status).trim() !== '';
 }
 
+/** 取出區間內 (含頭尾整天)、表上存在的日期 entry，依時間排序 */
+function entriesInRange(schedule, from, to) {
+  const fromMid = new Date(from); fromMid.setHours(0, 0, 0, 0);
+  const toMid = new Date(to); toMid.setHours(23, 59, 59, 999);
+  return [...schedule.values()]
+    .filter(e => e.date >= fromMid && e.date <= toMid)
+    .sort((a, b) => a.date - b.date);
+}
+
 /**
  * 查指定日期區間內「沒填完」的人。
  * @param {Map} schedule  parseSchedule 的結果
@@ -134,13 +146,8 @@ function isFilled(status) {
 function findUnfilled(schedule, from, to, names) {
   const targetNames = names && names.length ? names : MEMBERS.map(m => m.sheetName);
 
-  const fromMid = new Date(from); fromMid.setHours(0, 0, 0, 0);
-  const toMid = new Date(to); toMid.setHours(23, 59, 59, 999);
-
   // 區間內、表上存在的日期，依時間排序
-  const dates = [...schedule.values()]
-    .filter(e => e.date >= fromMid && e.date <= toMid)
-    .sort((a, b) => a.date - b.date)
+  const dates = entriesInRange(schedule, from, to)
     .map(e => ({ dateStr: dateKey(e.date), date: e.date, entry: e }));
 
   const perMember = {};
@@ -163,15 +170,80 @@ function findUnfilled(schedule, from, to, names) {
  * @returns {{dateStr:string,date:Date}[]} 依時間排序
  */
 function fullAvailableDates(schedule, from, to) {
-  const fromMid = new Date(from); fromMid.setHours(0, 0, 0, 0);
-  const toMid = new Date(to); toMid.setHours(23, 59, 59, 999);
   const names = MEMBERS.map(m => m.sheetName);
 
-  return [...schedule.values()]
-    .filter(e => e.date >= fromMid && e.date <= toMid)
+  return entriesInRange(schedule, from, to)
     .filter(e => names.every(n => String(e.statuses[n] ?? '').trim() === 'O'))
-    .sort((a, b) => a.date - b.date)
     .map(e => ({ dateStr: dateKey(e.date), date: e.date }));
+}
+
+/**
+ * 找出區間內「△ 待確認」的日期：當天沒有任何人填 X、但至少一人填 △。
+ * 空白格也算 (還沒被 X 排除)。這些天只差 △ 的人確認就可能出團。
+ * @returns {{
+ *   dates: {dateStr:string,date:Date}[],    // 符合條件的日期
+ *   perMember: { [name:string]: string[] },  // 每個 △ 成員要確認的日期 (顯示帶星期)
+ *   members: string[]                         // 需要確認的成員，依名單順序
+ * }}
+ */
+function findTentative(schedule, from, to) {
+  const names = MEMBERS.map(m => m.sheetName);
+  const dates = [];
+  const perMember = {};
+
+  for (const e of entriesInRange(schedule, from, to)) {
+    const status = n => String(e.statuses[n] ?? '').trim();
+    if (names.some(n => status(n) === 'X')) continue;
+    const tentative = names.filter(n => status(n) === '△');
+    if (!tentative.length) continue;
+
+    dates.push({ dateStr: dateKey(e.date), date: e.date });
+    for (const n of tentative) (perMember[n] ||= []).push(dateLabel(e.date));
+  }
+
+  return { dates, perMember, members: names.filter(n => perMember[n]) };
+}
+
+function sheetBaseUrl() {
+  return `https://docs.google.com/spreadsheets/d/${process.env.SPREADSHEET_ID}/edit`;
+}
+
+// 「出團時間表」分頁的 gid (網址 #gid= 用)。分頁不會換，查一次就快取；失敗則下次重查。
+let gidPromise = null;
+function getSheetGid() {
+  if (!gidPromise) {
+    gidPromise = (async () => {
+      const client = await auth.getClient();
+      const sheets = google.sheets({ version: 'v4', auth: client });
+      const { data } = await sheets.spreadsheets.get({
+        spreadsheetId: process.env.SPREADSHEET_ID,
+        fields: 'sheets.properties(sheetId,title)',
+      });
+      const sheet = (data.sheets || []).find(s => s.properties?.title === SHEET_NAME);
+      if (!sheet) throw new Error(`找不到分頁「${SHEET_NAME}」`);
+      return sheet.properties.sheetId;
+    })();
+    gidPromise.catch(() => { gidPromise = null; });
+  }
+  return gidPromise;
+}
+
+/**
+ * 產生「點了直接跳到該週」的試算表連結：跳到區間內第一個日期所在週區塊的錨點格 (A 欄)。
+ * 區間內沒有日期 (表還沒建) 或查 gid 失敗 → 退回整份試算表連結，不影響訊息發送。
+ * 注意：手機 Sheets App 通常會忽略 range，只會打開分頁。
+ */
+async function weekUrl(schedule, from, to = from) {
+  const base = sheetBaseUrl();
+  const entry = entriesInRange(schedule, from, to)[0];
+  if (!entry) return base;
+  try {
+    const gid = await getSheetGid();
+    return `${base}#gid=${gid}&range=A${entry.anchorRow}`;
+  } catch (error) {
+    console.error('查詢分頁 gid 失敗，改用一般連結：', error.message);
+    return base;
+  }
 }
 
 /** 算出「下一個 CD 週」的區間 (以週二為第一天，週二~下週一)。給週六催填、週日公告用。 */
@@ -191,6 +263,9 @@ module.exports = {
   parseSchedule,
   findUnfilled,
   fullAvailableDates,
+  findTentative,
+  sheetBaseUrl,
+  weekUrl,
   nextCdWeek,
   isFilled,
   dateKey,
